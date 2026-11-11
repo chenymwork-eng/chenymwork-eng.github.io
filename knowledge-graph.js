@@ -15,9 +15,9 @@ const byId=Object.fromEntries(nodes.map(n=>[n.id,n]));
 function ordered(id='me'){return [byId[id],...nodes.filter(n=>n.parent===id).flatMap(n=>ordered(n.id))]}
 const children=id=>nodes.filter(n=>n.parent===id);
 const pairs=nodes.filter(n=>n.parent).map(n=>[n.parent,n.id]);
-const colors={profile:'#f4f1e9',category:'#a8c8e0',subcategory:'#a7b7c9',evidence:'#b8c7d4',capability:'#c4abd9'};
+const colors={profile:'#172b43',category:'#486985',subcategory:'#718da5',evidence:'#9faebb',capability:'#8e7c9c'};
 let visible=[],visiblePairs=[],visibleCross=[];
-let selected='me',hover=null,rotX=0,rotY=0,targetX=0,targetY=0,zoom=1,drag=false,last=null,frame=0,dead=false,projected=[],w=600,h=500;
+let selected='me',hover=null,rotX=-.24,rotY=.28,targetX=-.24,targetY=.28,zoom=1,drag=false,last=null,frame=0,dead=false,projected=[],w=600,h=500;
 const connected=id=>new Set([...visiblePairs,...visibleCross].filter(p=>p.includes(id)).flat());
 host.innerHTML='<div class="graph-shell"><div class="graph-stage"><canvas tabindex="0" role="img" aria-label="Interactive 3D knowledge graph. Use arrow keys to rotate, plus or minus to zoom. Select any node using the menu beside the graph."></canvas><div class="graph-toolbar"><button data-action="reset">Reset</button><button data-action="in" aria-label="Zoom in">+</button><button data-action="out" aria-label="Zoom out">−</button></div><div class="graph-key">'+['profile','category','subcategory','evidence','capability'].map(t=>'<span><i style="background:'+colors[t]+'"></i>'+t+'</span>').join('')+'</div></div><aside class="graph-panel"><label for="graph-node">Explore a node</label><select id="graph-node">'+[...ordered(),...capabilities.filter(c=>!c.parent).map(c=>byId[c.id])].map(n=>'<option value="'+n.id+'">'+(n.parent==='me'?'':n.type==='subcategory'?'— ':n.type==='evidence'?'—— ':'')+n.label+'</option>').join('')+'</select><div id="graph-info"></div><p class="graph-count">Solid arrows: hierarchy · Dashed lines: shared capabilities</p><p class="graph-help">All levels visible · Click to highlight<br>Drag to rotate · Release to stop<br>Touch: drag the network</p></aside></div>';
 const canvas=host.querySelector('canvas'),ctx=canvas.getContext('2d'),select=host.querySelector('select');
@@ -27,20 +27,20 @@ const n=byId[id];select.value=id;
 const related=capabilities.filter(c=>c.items.includes(id));
 visible=nodes.map(n=>({...n}));
 const placed=Object.fromEntries(visible.map(n=>[n.id,n]));
-const branches=children('me'),tones=['#9ebce0','#c2b4de','#89c7c5','#cdbb98','#a7bfa8'];
+const branches=children('me'),tones=['#51789a','#86709e','#4e8a88','#9b8357','#6d8a69'];
 branches.forEach((branch,i)=>{
 const center=-Math.PI/2+i*Math.PI*2/branches.length;
 const position=(n,r,angle,z=0)=>{Object.assign(placed[n.id],{x:Math.cos(angle)*r,y:Math.sin(angle)*r,z,tone:tones[i]})};
-position(branch,155,center);
+position(branch,155,center,[-85,90,-65,95,-50][i]);
 const subs=children(branch.id);
 subs.forEach((sub,j)=>{
 const angle=center+(j-(subs.length-1)/2)*(.95/Math.max(1,subs.length));
-position(sub,235,angle,(j%2?1:-1)*18);
+position(sub,235,angle,(j%2?1:-1)*90+(i-2)*25);
 const leaves=children(sub.id);
-leaves.forEach((leaf,k)=>position(leaf,320+(k%2)*13,angle+(k-(leaves.length-1)/2)*(.95/Math.max(1,subs.length))/Math.max(1,leaves.length),(k%2?1:-1)*28));
+leaves.forEach((leaf,k)=>position(leaf,320+(k%2)*13,angle+(k-(leaves.length-1)/2)*(.95/Math.max(1,subs.length))/Math.max(1,leaves.length),(k%2?1:-1)*135+(j-1)*35));
 });
 });
-capabilities.filter(c=>!c.parent).forEach((c,i)=>{const angle=-Math.PI/2+(i+.5)*Math.PI*2/capabilities.length;Object.assign(placed[c.id],{x:Math.cos(angle)*235,y:Math.sin(angle)*235,z:45,tone:'#c4abd9'})});
+capabilities.filter(c=>!c.parent).forEach((c,i)=>{const angle=-Math.PI/2+(i+.5)*Math.PI*2/capabilities.length;Object.assign(placed[c.id],{x:Math.cos(angle)*235,y:Math.sin(angle)*235,z:i%2?145:-140,tone:'#8e7c9c'})});
 visiblePairs=pairs;visibleCross=crossPairs;
 const parent=byId[n.parent],ns=children(id);
 host.querySelector('#graph-info').innerHTML='<p class="graph-node-type">'+n.type+'</p><h3>'+n.label+'</h3><p>'+n.text+'</p>'+(n.skills?'<p class="graph-skills">'+n.skills+'</p>':'')+(n.route?'<a href="'+n.route+'">Open evidence ↗</a>':'')+(parent?'<p class="graph-related-title">Parent</p><div class="graph-related"><button data-node="'+parent.id+'">← '+parent.label+'</button></div>':'')+(ns.length?'<p class="graph-related-title">Contains · '+ns.length+'</p><div class="graph-related">'+ns.map(n=>'<button data-node="'+n.id+'">'+n.label+' →</button>').join('')+'</div>':n.type==='capability'?'':'<p class="graph-related-title">Evidence item</p>')+(related.length?'<p class="graph-related-title">Shared capabilities</p><div class="graph-related">'+related.map(c=>'<button data-node="'+c.id+'">'+c.label+' ↔</button>').join('')+'</div>':'')+(n.type==='capability'?'<p class="graph-related-title">Used in</p><div class="graph-related">'+n.items.map(id=>'<button data-node="'+id+'">'+byId[id].label+' ↔</button>').join('')+'</div>':'');
@@ -49,33 +49,33 @@ info('me');
 let lastDrawKey='';
 function resize(){lastDrawKey='';const r=canvas.getBoundingClientRect();w=r.width;h=r.height;const d=Math.min(devicePixelRatio||1,2);canvas.width=w*d;canvas.height=h*d;ctx.setTransform(d,0,0,d,0,0)}
 const obs=new ResizeObserver(resize);obs.observe(canvas);
-function point(n){const cy=Math.cos(rotY),sy=Math.sin(rotY),cx=Math.cos(rotX),sx=Math.sin(rotX);const x=n.x*cy-n.z*sy,z=n.x*sy+n.z*cy,y=n.y*cx-z*sx,zz=n.y*sx+z*cx;const scale=650/(650+zz);const fit=Math.min(w/920,h/880)*zoom;return {...n,px:w/2+x*scale*fit,py:h/2+y*scale*fit,s:scale,depth:zz,r:(n.id==='me'?6:n.type==='evidence'?2.6:n.type==='category'?4.5:3.2)*scale}}
+function point(n){const cy=Math.cos(rotY),sy=Math.sin(rotY),cx=Math.cos(rotX),sx=Math.sin(rotX);const x=n.x*cy-n.z*sy,z=n.x*sy+n.z*cy,y=n.y*cx-z*sx,zz=n.y*sx+z*cx;const scale=650/(650+zz);const fit=Math.min(w/920,h/880)*zoom;return {...n,px:w/2+x*scale*fit,py:h/2+y*scale*fit,s:scale,depth:zz,r:(n.id==='me'?12:n.type==='category'?8:n.type==='subcategory'?4.5:n.type==='capability'?4:2.5)*scale}}
 const stars=Array.from({length:220},(_,i)=>({x:((Math.sin(i*127.1+3)*43758.5453)%1+1)%1,y:((Math.sin(i*311.7+7)*17431.137)%1+1)%1,r:i%17===0?1:.5,alpha:.12+(i%5)*.045}));
 function draw(){
 if(dead)return;const drawKey=[targetX,targetY,zoom,w,h,selected,hover].join('|');if(drawKey===lastDrawKey){frame=requestAnimationFrame(draw);return}lastDrawKey=drawKey;rotX=targetX;rotY=targetY;ctx.clearRect(0,0,w,h);
-for(const star of stars){ctx.globalAlpha=star.alpha;ctx.fillStyle='#c7d8ef';ctx.beginPath();ctx.arc(star.x*w,star.y*h,star.r,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;
+for(const star of stars){ctx.globalAlpha=star.alpha;ctx.fillStyle='#547494';ctx.beginPath();ctx.arc(star.x*w,star.y*h,star.r,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;
 projected=visible.map(point);
 const map=Object.fromEntries(projected.map(n=>[n.id,n])),active=hover||selected,near=connected(active);near.add(active);
 for(const n of projected.filter(n=>n.type==='category'||n.id==='me')){
 const glow=ctx.createRadialGradient(n.px,n.py,0,n.px,n.py,n.id==='me'?100:80);
-glow.addColorStop(0,(n.tone||'#a8c8e0')+'15');glow.addColorStop(1,'#0a122000');
+glow.addColorStop(0,(n.tone||'#51789a')+'12');glow.addColorStop(1,'#f5f7fa00');
 ctx.fillStyle=glow;ctx.fillRect(n.px-100,n.py-100,200,200);
 }
 for(const [a,b] of visiblePairs){
 const p=map[a],q=map[b],lit=active!=='me'&&(a===active||b===active);
 ctx.beginPath();ctx.moveTo(p.px,p.py);
 ctx.quadraticCurveTo((p.px+q.px)/2+(q.py-p.py)*.1,(p.py+q.py)/2-(q.px-p.px)*.1,q.px,q.py);
-ctx.strokeStyle=lit?'#d4e6f0b0':(q.tone||'#aec9e0')+(active==='me'?'3d':'1a');ctx.lineWidth=lit?1.25:.6;ctx.stroke();
+ctx.strokeStyle=lit?'#345c82b0':(q.tone||'#718da5')+(active==='me'?'45':'22');ctx.lineWidth=lit?1.25:.6;ctx.stroke();
 }
 for(const [a,b] of visibleCross){
 const p=map[a],q=map[b],lit=a===active||b===active;
-ctx.beginPath();ctx.setLineDash([2,5]);ctx.moveTo(p.px,p.py);ctx.lineTo(q.px,q.py);ctx.strokeStyle=lit?'#cdb5e7b0':'#b9a4d51a';ctx.lineWidth=lit?1.1:.5;ctx.stroke();ctx.setLineDash([]);
+ctx.beginPath();ctx.setLineDash([2,5]);ctx.moveTo(p.px,p.py);ctx.lineTo(q.px,q.py);ctx.strokeStyle=lit?'#856899b0':'#85689928';ctx.lineWidth=lit?1.1:.5;ctx.stroke();ctx.setLineDash([]);
 }
 for(const n of [...projected].sort((a,b)=>b.depth-a.depth)){
-const lit=near.has(n.id);ctx.globalAlpha=active==='me'||lit?1:.4;
-ctx.shadowColor=n.tone||colors[n.type];ctx.shadowBlur=n.id===active?15:7;
-ctx.beginPath();ctx.arc(n.px,n.py,n.r+(n.id===active?1.5:0),0,Math.PI*2);ctx.fillStyle=n.tone||colors[n.type];ctx.fill();ctx.shadowBlur=0;
-if(n.id===active){ctx.beginPath();ctx.arc(n.px,n.py,n.r+6,0,Math.PI*2);ctx.strokeStyle='#d8e7f145';ctx.lineWidth=1;ctx.stroke()}
+const lit=near.has(n.id);const prominence=n.id==='me'?1:n.type==='category'?.95:n.type==='subcategory'?.78:.6;ctx.globalAlpha=(active==='me'||lit?1:.35)*prominence*Math.max(.5,Math.min(1.15,n.s));
+ctx.shadowColor=n.tone||colors[n.type];ctx.shadowBlur=n.id==='me'?18:n.type==='category'?10:3;
+ctx.beginPath();ctx.arc(n.px,n.py,n.r+(n.id===active?1.5:0),0,Math.PI*2);const sphere=ctx.createRadialGradient(n.px-n.r*.3,n.py-n.r*.35,0,n.px,n.py,n.r*1.5);sphere.addColorStop(0,'#ffffff');sphere.addColorStop(.4,n.id==='me'?colors.profile:n.tone||colors[n.type]);sphere.addColorStop(1,n.id==='me'?'#142238':n.tone||colors[n.type]);ctx.fillStyle=sphere;ctx.fill();ctx.shadowBlur=0;
+if(n.id===active){ctx.beginPath();ctx.arc(n.px,n.py,n.r+6,0,Math.PI*2);ctx.strokeStyle='#55799c45';ctx.lineWidth=1;ctx.stroke()}
 }
 ctx.globalAlpha=1;
 drawLabels(active,near);
@@ -99,8 +99,8 @@ let box=candidates.find(b=>b.x>14&&b.y>55&&b.x+b.w<w-14&&b.y+b.h<h-14&&!boxes.so
 if(!box)continue;
 boxes.push(box);
 const ax=Math.max(box.x,Math.min(box.x+box.w,n.px)),ay=Math.max(box.y,Math.min(box.y+box.h,n.py));
-if(Math.hypot(ax-n.px,ay-n.py)>18){ctx.beginPath();ctx.moveTo(n.px,n.py);ctx.lineTo(ax,ay);ctx.strokeStyle='#a7bbcf35';ctx.lineWidth=.5;ctx.stroke()}
-ctx.fillStyle=n.id===active?'#fff':n.type==='category'?'#e0e7ee':active==='me'||near.has(n.id)?'#b0bdcd':'#718197';
+if(Math.hypot(ax-n.px,ay-n.py)>18){ctx.beginPath();ctx.moveTo(n.px,n.py);ctx.lineTo(ax,ay);ctx.strokeStyle='#6b83964a';ctx.lineWidth=.5;ctx.stroke()}
+ctx.fillStyle=n.id===active?'#142c44':n.type==='category'?'#314f69':active==='me'||near.has(n.id)?'#63788b':'#9ba8b3';
 lines.forEach((t,i)=>ctx.fillText(t,box.x,box.y+11+i*14));
 }
 }
@@ -122,6 +122,6 @@ canvas.addEventListener('pointercancel',release);
 canvas.addEventListener('lostpointercapture',release);
 canvas.addEventListener('pointerleave',()=>{hover=null;canvas.title=''});
 canvas.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','-'].includes(e.key)){e.preventDefault();if(e.key==='ArrowLeft')targetY-=.2;if(e.key==='ArrowRight')targetY+=.2;if(e.key==='ArrowUp')targetX-=.2;if(e.key==='ArrowDown')targetX+=.2;if(e.key==='+')zoom=Math.min(1.6,zoom+.1);if(e.key==='-')zoom=Math.max(.6,zoom-.1)}});
-select.addEventListener('change',()=>info(select.value));host.addEventListener('click',e=>{const n=e.target.closest('[data-node]');if(n)info(n.dataset.node);const b=e.target.closest('[data-action]');if(!b)return;if(b.dataset.action==='reset'){targetX=rotX=0;targetY=rotY=0;zoom=1;info('me')}if(b.dataset.action==='in')zoom=Math.min(1.6,zoom+.15);if(b.dataset.action==='out')zoom=Math.max(.6,zoom-.15)});
+select.addEventListener('change',()=>info(select.value));host.addEventListener('click',e=>{const n=e.target.closest('[data-node]');if(n)info(n.dataset.node);const b=e.target.closest('[data-action]');if(!b)return;if(b.dataset.action==='reset'){targetX=rotX=-.24;targetY=rotY=.28;zoom=1;info('me')}if(b.dataset.action==='in')zoom=Math.min(1.6,zoom+.15);if(b.dataset.action==='out')zoom=Math.max(.6,zoom-.15)});
 resize();draw();return()=>{dead=true;cancelAnimationFrame(frame);obs.disconnect()}
 };
