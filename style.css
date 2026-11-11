@@ -101,3 +101,5 @@ dialog::backdrop{background:#1d1d1f55;backdrop-filter:blur(6px)}.close-dialog{co
 .graph-related button{min-height:36px;padding:7px 10px}.graph-stage canvas{height:540px}
 .graph-panel h3{font-size:20px}.area-card{min-height:160px}
 }
+
+@media(max-width:600px){.graph-stage canvas{touch-action:pan-y}}
