@@ -87,3 +87,5 @@ dialog::backdrop{background:#1d1d1f55;backdrop-filter:blur(6px)}.close-dialog{co
 .list-item .meta-lines{font-size:10px;margin-bottom:10px}.proof-context .meta-lines{margin:0;font-size:11px}
 .graph-panel .graph-skills{font-size:11px;color:#6e6e73;padding-left:15px}
 .site-bottom strong{font-weight:500}
+
+.transfer-note{font-size:13px;line-height:1.8;color:#627385;border-left:2px solid #bdcbd9;padding:3px 0 3px 16px;margin:0 0 30px;max-width:650px}.transfer-note strong,.view-heading p strong{font-weight:600;color:#354e67}.context-details>.list-item:first-of-type{margin-top:16px}
