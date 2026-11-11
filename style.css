@@ -38,3 +38,12 @@ dialog::backdrop{background:#1d1d1f55;backdrop-filter:blur(6px)}.close-dialog{co
 .graph-shell{grid-template-columns:1fr}.graph-stage canvas{height:660px}.graph-panel{max-width:720px}.graph-panel select{max-width:360px}@media(max-width:480px){.graph-stage canvas{height:500px}}
 
 .layout:has(#knowledge-graph){display:block;max-width:1400px}.layout:has(#knowledge-graph)>.profile{display:none}.graph-stage canvas{height:720px}@media(max-width:480px){.graph-stage canvas{height:560px}}
+
+/* Quiet galaxy: points and curved constellations, no ambient motion. */
+.graph-stage{background:radial-gradient(ellipse at 50% 48%,#152235 0%,#0d1727 46%,#080f1c 100%);border:1px solid #243145;border-radius:18px;box-shadow:0 20px 65px #16263d12}
+.graph-stage canvas{height:760px}
+.graph-toolbar button{background:#152135dd;color:#d3ddea;border-color:#334056;border-radius:6px}
+.graph-toolbar button:hover{background:#233149}
+.graph-key{color:#8d9db1;font-size:10px;gap:18px;padding:0 22px 20px}
+.graph-key i{box-shadow:0 0 8px currentColor}
+@media(max-width:480px){.graph-stage canvas{height:650px}.graph-key{gap:10px;font-size:9px}}
