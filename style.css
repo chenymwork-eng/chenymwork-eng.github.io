@@ -47,3 +47,14 @@ dialog::backdrop{background:#1d1d1f55;backdrop-filter:blur(6px)}.close-dialog{co
 .graph-key{color:#8d9db1;font-size:10px;gap:18px;padding:0 22px 20px}
 .graph-key i{box-shadow:0 0 8px currentColor}
 @media(max-width:480px){.graph-stage canvas{height:650px}.graph-key{gap:10px;font-size:9px}}
+
+/* Consistent light portfolio, embedded overview constellation. */
+.layout:has(#knowledge-graph){display:grid}.layout:has(#knowledge-graph)>.profile{display:block}
+.overview-network{max-width:1400px;margin:75px auto 0;padding:0 5%}.overview-network .view-heading{max-width:680px;margin-bottom:28px}
+.graph-stage{background:radial-gradient(ellipse at 50% 45%,#fff 0%,#f1f5f9 62%,#e9eff5 100%);border:1px solid #dce3eb;box-shadow:0 16px 50px #34577609}
+.graph-toolbar button{background:#ffffffdf;color:#496078;border-color:#d4dde7}.graph-toolbar button:hover{background:#eef3f8}
+.graph-key{color:#75879a}.graph-stage canvas{height:740px}
+.level-back{display:inline-flex;align-items:center;border:1px solid #d9dfe6;background:#fff;border-radius:7px;padding:8px 12px;color:#49647f;font-size:12px;margin-bottom:22px}
+.breadcrumbs{margin-bottom:24px}.site-bottom{max-width:1260px;margin:45px auto 25px;padding:20px 0;border-top:1px solid #d9d9de;display:flex;justify-content:space-between;font-size:11px;color:#86868b}.site-bottom a{color:#0066cc}
+@media(max-width:1400px){.site-bottom{margin-left:5%;margin-right:5%}}
+@media(max-width:800px){.overview-network{padding:0 6%;margin-top:45px}.graph-stage canvas{height:650px}}
