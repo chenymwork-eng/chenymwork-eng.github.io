@@ -67,7 +67,7 @@ menuTrigger.setAttribute('aria-expanded','true');if(focusFirst)panel.querySelect
 menuTrigger.addEventListener('click',()=>menuPanels.length?closeMenu():openMenu('me',menuTrigger,0));
 menuTrigger.addEventListener('keydown',e=>{if(e.key==='ArrowDown'||e.key==='ArrowRight'){e.preventDefault();openMenu('me',menuTrigger,0,true)}if(e.key==='Escape')closeMenu()});
 menuPopups.addEventListener('pointerover',e=>{
-if(e.pointerType==='touch')return;const item=e.target.closest('[data-menu-node]');if(!item||item.contains(e.relatedTarget))return;
+if(e.pointerType==='touch'||innerWidth<600)return;const item=e.target.closest('[data-menu-node]');if(!item||item.contains(e.relatedTarget))return;
 const level=Number(item.closest('[role="menu"]').dataset.level);const kids=children(item.dataset.menuNode);
 if(kids.length)openMenu(item.dataset.menuNode,item,level+1);else closeFrom(level+1);
 });
