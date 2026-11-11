@@ -36,3 +36,5 @@ dialog::backdrop{background:#1d1d1f55;backdrop-filter:blur(6px)}.close-dialog{co
 
 /* Complete graph: keep the network and its evidence panel on separate rows. */
 .graph-shell{grid-template-columns:1fr}.graph-stage canvas{height:660px}.graph-panel{max-width:720px}.graph-panel select{max-width:360px}@media(max-width:480px){.graph-stage canvas{height:500px}}
+
+.layout:has(#knowledge-graph){display:block;max-width:1400px}.layout:has(#knowledge-graph)>.profile{display:none}.graph-stage canvas{height:720px}@media(max-width:480px){.graph-stage canvas{height:560px}}
