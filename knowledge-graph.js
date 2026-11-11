@@ -19,11 +19,11 @@ const colors={profile:'#172b43',category:'#486985',subcategory:'#718da5',evidenc
 let visible=[],visiblePairs=[],visibleCross=[];
 let selected='me',hover=null,rotX=-.24,rotY=.28,targetX=-.24,targetY=.28,zoom=1,drag=false,last=null,frame=0,dead=false,projected=[],w=600,h=500;
 const connected=id=>new Set([...visiblePairs,...visibleCross].filter(p=>p.includes(id)).flat());
-host.innerHTML='<div class="graph-shell"><div class="graph-stage"><canvas tabindex="0" role="img" aria-label="Interactive 3D knowledge graph. Use arrow keys to rotate, plus or minus to zoom. Select any node using the menu beside the graph."></canvas><div class="graph-toolbar"><button data-action="reset">Reset</button><button data-action="in" aria-label="Zoom in">+</button><button data-action="out" aria-label="Zoom out">−</button></div><div class="graph-key">'+['profile','category','subcategory','evidence','capability'].map(t=>'<span><i style="background:'+colors[t]+'"></i>'+t+'</span>').join('')+'</div></div><aside class="graph-panel"><label for="graph-node">Explore a node</label><select id="graph-node">'+children('me').map(n=>'<option value="'+n.id+'">'+(n.parent==='me'?'':n.type==='subcategory'?'— ':n.type==='evidence'?'—— ':'')+n.label+'</option>').join('')+'</select><div id="graph-info"></div><p class="graph-count">Solid arrows: hierarchy · Dashed lines: shared capabilities</p><p class="graph-help">All levels visible · Click to highlight<br>Drag to rotate · Release to stop<br>Touch: drag the network</p></aside></div>';
-const canvas=host.querySelector('canvas'),ctx=canvas.getContext('2d'),select=host.querySelector('select');
+host.innerHTML='<div class="graph-shell"><div class="graph-stage"><canvas tabindex="0" role="img" aria-label="Interactive 3D knowledge graph. Use arrow keys to rotate, plus or minus to zoom. Select any node using the menu beside the graph."></canvas><div class="graph-toolbar"><button data-action="reset">Reset</button><button data-action="in" aria-label="Zoom in">+</button><button data-action="out" aria-label="Zoom out">−</button></div><div class="graph-key">'+['profile','category','subcategory','evidence','capability'].map(t=>'<span><i style="background:'+colors[t]+'"></i>'+t+'</span>').join('')+'</div></div><aside class="graph-panel"><span class="graph-menu-label" id="graph-menu-label">Explore a node</span><div class="graph-menu-wrap"><button id="graph-menu-trigger" class="graph-menu-trigger" aria-haspopup="menu" aria-expanded="false" aria-labelledby="graph-menu-label graph-menu-trigger">Choose a category <span aria-hidden="true">⌄</span></button><div class="graph-menu-popups"></div></div><div id="graph-info"></div><p class="graph-count">Solid arrows: hierarchy · Dashed lines: shared capabilities</p><p class="graph-help">All levels visible · Click to highlight<br>Drag to rotate · Release to stop<br>Touch: drag the network</p></aside></div>';
+const canvas=host.querySelector('canvas'),ctx=canvas.getContext('2d'),menuTrigger=host.querySelector('#graph-menu-trigger'),menuPopups=host.querySelector('.graph-menu-popups');
 function info(id){
 selected=id;hover=null;
-const n=byId[id];let category=n;while(category.parent&&category.parent!=='me')category=byId[category.parent];select.value=category.parent==='me'?category.id:'';
+const n=byId[id];menuTrigger.innerHTML=(id==='me'?'Choose a category':n.label)+' <span aria-hidden="true">⌄</span>';
 const related=capabilities.filter(c=>c.items.includes(id));
 visible=nodes.map(n=>({...n}));
 const placed=Object.fromEntries(visible.map(n=>[n.id,n]));
@@ -45,6 +45,50 @@ visiblePairs=pairs;visibleCross=crossPairs;
 const parent=byId[n.parent],ns=children(id);
 host.querySelector('#graph-info').innerHTML='<p class="graph-node-type">'+n.type+'</p><h3>'+n.label+'</h3><p>'+n.text+'</p>'+(n.skills?'<p class="graph-skills">'+n.skills+'</p>':'')+(n.route?'<a href="'+n.route+'">Open evidence ↗</a>':'')+(parent?'<p class="graph-related-title">Parent</p><div class="graph-related"><button data-node="'+parent.id+'">← '+parent.label+'</button></div>':'')+(ns.length?'<p class="graph-related-title">Contains · '+ns.length+'</p><div class="graph-related">'+ns.map(n=>'<button data-node="'+n.id+'">'+n.label+' →</button>').join('')+'</div>':n.type==='capability'?'':'<p class="graph-related-title">Evidence item</p>')+(related.length?'<p class="graph-related-title">Shared capabilities</p><div class="graph-related">'+related.map(c=>'<button data-node="'+c.id+'">'+c.label+' ↔</button>').join('')+'</div>':'')+(n.type==='capability'?'<p class="graph-related-title">Used in</p><div class="graph-related">'+n.items.map(id=>'<button data-node="'+id+'">'+byId[id].label+' ↔</button>').join('')+'</div>':'');
 }
+const menuPanels=[];
+function closeFrom(level){while(menuPanels.length>level){const panel=menuPanels.pop();panel.remove()}menuPopups.querySelectorAll('[aria-expanded]').forEach(b=>b.setAttribute('aria-expanded',menuPanels.some(p=>p.dataset.parent===b.dataset.menuNode)?'true':'false'))}
+function closeMenu(){closeFrom(0);menuTrigger.setAttribute('aria-expanded','false')}
+function openMenu(parentId,anchor,level,focusFirst=false){
+if(menuPanels[level]?.dataset.parent===parentId){if(focusFirst)menuPanels[level].querySelector('[role="menuitem"]').focus();return}
+closeFrom(level);
+const items=children(parentId);if(!items.length)return;
+const panel=document.createElement('div');panel.className='graph-flyout';panel.setAttribute('role','menu');panel.setAttribute('aria-label',parentId==='me'?'Focus areas':byId[parentId].label);panel.dataset.parent=parentId;panel.dataset.level=level;
+panel.innerHTML=(level?'<button role="menuitem" class="graph-menu-back" data-menu-back="'+level+'">← Back</button>':'')+items.map(n=>'<button role="menuitem" tabindex="-1" data-menu-node="'+n.id+'"'+(children(n.id).length?' aria-haspopup="menu" aria-expanded="false"':'')+'><span>'+n.label+'</span>'+(children(n.id).length?'<span aria-hidden="true">›</span>':'')+'</button>').join('');
+menuPopups.appendChild(panel);menuPanels.push(panel);
+const rect=anchor.getBoundingClientRect(),pw=panel.offsetWidth,ph=panel.offsetHeight;
+let left=level?rect.right-2:rect.left,top=level?rect.top:rect.bottom+6;
+if(left+pw>innerWidth-12)left=level&&rect.left-pw>=12?rect.left-pw+2:innerWidth-pw-12;
+panel.style.left=Math.max(12,left)+'px';panel.style.top=Math.max(12,Math.min(top,innerHeight-ph-12))+'px';
+if(level)anchor.setAttribute('aria-expanded','true');
+menuTrigger.setAttribute('aria-expanded','true');if(focusFirst)panel.querySelector('[role="menuitem"]').focus();
+}
+menuTrigger.addEventListener('click',()=>menuPanels.length?closeMenu():openMenu('me',menuTrigger,0));
+menuTrigger.addEventListener('keydown',e=>{if(e.key==='ArrowDown'||e.key==='ArrowRight'){e.preventDefault();openMenu('me',menuTrigger,0,true)}if(e.key==='Escape')closeMenu()});
+menuPopups.addEventListener('pointerover',e=>{
+if(e.pointerType==='touch')return;const item=e.target.closest('[data-menu-node]');if(!item||item.contains(e.relatedTarget))return;
+const level=Number(item.closest('[role="menu"]').dataset.level);const kids=children(item.dataset.menuNode);
+if(kids.length)openMenu(item.dataset.menuNode,item,level+1);else closeFrom(level+1);
+});
+menuPopups.addEventListener('click',e=>{
+const back=e.target.closest('[data-menu-back]');if(back){const level=Number(back.dataset.menuBack);closeFrom(level);menuPanels[level-1]?.querySelector('[role="menuitem"]').focus();return}
+const item=e.target.closest('[data-menu-node]');if(!item)return;const id=item.dataset.menuNode;info(id);
+if(children(id).length)openMenu(id,item,Number(item.closest('[role="menu"]').dataset.level)+1);else{closeMenu();menuTrigger.focus()}
+});
+menuPopups.addEventListener('keydown',e=>{
+const item=e.target.closest('[role="menuitem"]');if(!item)return;const panel=item.closest('[role="menu"]'),level=Number(panel.dataset.level),items=[...panel.querySelectorAll('[role="menuitem"]')],index=items.indexOf(item);
+if(['ArrowDown','ArrowUp','ArrowRight','ArrowLeft','Home','End','Escape','Tab'].includes(e.key)){
+if(e.key!=='Tab')e.preventDefault();
+if(e.key==='ArrowDown')items[(index+1)%items.length].focus();
+if(e.key==='ArrowUp')items[(index-1+items.length)%items.length].focus();
+if(e.key==='Home')items[0].focus();if(e.key==='End')items[items.length-1].focus();
+if(e.key==='ArrowRight'&&item.dataset.menuNode)openMenu(item.dataset.menuNode,item,level+1,true);
+if(e.key==='ArrowLeft'){if(level){const parent=panel.dataset.parent;closeFrom(level);menuPanels[level-1].querySelector('[data-menu-node="'+parent+'"]').focus()}else{closeMenu();menuTrigger.focus()}}
+if(e.key==='Escape'){closeMenu();menuTrigger.focus()}if(e.key==='Tab')closeMenu();
+}
+});
+function outsideMenu(e){if(!menuPopups.contains(e.target)&&!menuTrigger.contains(e.target))closeMenu()}
+function dismissMenu(e){if(e&&menuPopups.contains(e.target))return;closeMenu()}
+document.addEventListener('pointerdown',outsideMenu);window.addEventListener('resize',dismissMenu);window.addEventListener('scroll',dismissMenu,true);
 info('me');
 let lastDrawKey='';
 function resize(){lastDrawKey='';const r=canvas.getBoundingClientRect();w=r.width;h=r.height;const d=Math.min(devicePixelRatio||1,2);canvas.width=w*d;canvas.height=h*d;ctx.setTransform(d,0,0,d,0,0)}
@@ -122,6 +166,6 @@ canvas.addEventListener('pointercancel',release);
 canvas.addEventListener('lostpointercapture',release);
 canvas.addEventListener('pointerleave',()=>{hover=null;canvas.title=''});
 canvas.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','-'].includes(e.key)){e.preventDefault();if(e.key==='ArrowLeft')targetY-=.2;if(e.key==='ArrowRight')targetY+=.2;if(e.key==='ArrowUp')targetX-=.2;if(e.key==='ArrowDown')targetX+=.2;if(e.key==='+')zoom=Math.min(1.6,zoom+.1);if(e.key==='-')zoom=Math.max(.6,zoom-.1)}});
-select.addEventListener('change',()=>info(select.value));host.addEventListener('click',e=>{const n=e.target.closest('[data-node]');if(n)info(n.dataset.node);const b=e.target.closest('[data-action]');if(!b)return;if(b.dataset.action==='reset'){targetX=rotX=-.24;targetY=rotY=.28;zoom=1;info('me')}if(b.dataset.action==='in')zoom=Math.min(1.6,zoom+.15);if(b.dataset.action==='out')zoom=Math.max(.6,zoom-.15)});
-resize();draw();return()=>{dead=true;cancelAnimationFrame(frame);obs.disconnect()}
+host.addEventListener('click',e=>{const n=e.target.closest('[data-node]');if(n)info(n.dataset.node);const b=e.target.closest('[data-action]');if(!b)return;if(b.dataset.action==='reset'){targetX=rotX=-.24;targetY=rotY=.28;zoom=1;info('me')}if(b.dataset.action==='in')zoom=Math.min(1.6,zoom+.15);if(b.dataset.action==='out')zoom=Math.max(.6,zoom-.15)});
+resize();draw();return()=>{dead=true;cancelAnimationFrame(frame);obs.disconnect();closeMenu();document.removeEventListener('pointerdown',outsideMenu);window.removeEventListener('resize',dismissMenu);window.removeEventListener('scroll',dismissMenu,true)}
 };
