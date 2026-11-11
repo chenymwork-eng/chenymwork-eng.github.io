@@ -58,3 +58,12 @@ dialog::backdrop{background:#1d1d1f55;backdrop-filter:blur(6px)}.close-dialog{co
 .breadcrumbs{margin-bottom:24px}.site-bottom{max-width:1260px;margin:45px auto 25px;padding:20px 0;border-top:1px solid #d9d9de;display:flex;justify-content:space-between;font-size:11px;color:#86868b}.site-bottom a{color:#0066cc}
 @media(max-width:1400px){.site-bottom{margin-left:5%;margin-right:5%}}
 @media(max-width:800px){.overview-network{padding:0 6%;margin-top:45px}.graph-stage canvas{height:650px}}
+
+.graph-menu-label{display:block;font-size:11px;color:#515154;margin-bottom:8px}
+.graph-menu-wrap{position:relative;max-width:360px}
+.graph-menu-trigger{width:100%;display:flex;justify-content:space-between;align-items:center;gap:20px;text-align:left;background:#fff;border:1px solid #d7dce3;border-radius:8px;color:#394b5d;padding:10px 12px;font-size:12px;box-shadow:0 1px 3px #182e4410}
+.graph-menu-trigger[aria-expanded="true"]{border-color:#93a9bf}
+.graph-flyout{position:fixed;z-index:100;width:218px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);overflow-y:auto;background:#fafbfded;backdrop-filter:blur(24px);border:1px solid #d6dce4;border-radius:9px;padding:5px;box-shadow:0 10px 32px #13283f26,0 2px 6px #13283f10}
+.graph-flyout button{border:0;background:transparent;border-radius:5px;width:100%;display:flex;align-items:center;justify-content:space-between;gap:15px;padding:7px 9px;text-align:left;font:12px/1.45 -apple-system,BlinkMacSystemFont,Arial,sans-serif;color:#304255}
+.graph-flyout button:hover,.graph-flyout button:focus-visible,.graph-flyout button[aria-expanded="true"]{background:#e5edf6;color:#173e65;outline:none}
+.graph-flyout .graph-menu-back{font-size:10px;color:#7a8999;border-bottom:1px solid #e0e5eb;border-radius:0;margin-bottom:4px;padding-bottom:9px}
