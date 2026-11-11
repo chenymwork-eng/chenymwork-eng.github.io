@@ -16,40 +16,42 @@ const children=id=>nodes.filter(n=>n.parent===id);
 const pairs=nodes.filter(n=>n.parent).map(n=>[n.parent,n.id]);
 const colors={profile:'#1d1d1f',category:'#4c7487',subcategory:'#7b817c',evidence:'#959aa1',capability:'#7d6d99'};
 let visible=[],visiblePairs=[],visibleCross=[];
-let selected='me',hover=null,rotX=.15,rotY=-.25,targetX=.15,targetY=-.25,zoom=1,drag=false,last=null,frame=0,dead=false,projected=[],w=600,h=500;
+let selected='me',hover=null,rotX=0,rotY=0,targetX=0,targetY=0,zoom=1,drag=false,last=null,frame=0,dead=false,projected=[],w=600,h=500;
 const connected=id=>new Set([...visiblePairs,...visibleCross].filter(p=>p.includes(id)).flat());
-host.innerHTML='<div class="graph-shell"><div class="graph-stage"><canvas tabindex="0" role="img" aria-label="Interactive 3D knowledge graph. Use arrow keys to rotate, plus or minus to zoom. Select any node using the menu beside the graph."></canvas><div class="graph-toolbar"><button data-action="reset">Reset</button><button data-action="in" aria-label="Zoom in">+</button><button data-action="out" aria-label="Zoom out">−</button></div><div class="graph-key">'+['profile','category','subcategory','evidence','capability'].map(t=>'<span><i style="background:'+colors[t]+'"></i>'+t+'</span>').join('')+'</div></div><aside class="graph-panel"><label for="graph-node">Explore a node</label><select id="graph-node">'+[...ordered(),...capabilities.map(c=>byId[c.id])].map(n=>'<option value="'+n.id+'">'+(n.parent==='me'?'':n.type==='subcategory'?'— ':n.type==='evidence'?'—— ':'')+n.label+'</option>').join('')+'</select><div id="graph-info"></div><p class="graph-count">Solid arrows: hierarchy · Dashed lines: shared capabilities</p><p class="graph-help">Click to expand · Parent → child<br>Drag to rotate · Release to stop<br>Touch: drag the network</p></aside></div>';
+host.innerHTML='<div class="graph-shell"><div class="graph-stage"><canvas tabindex="0" role="img" aria-label="Interactive 3D knowledge graph. Use arrow keys to rotate, plus or minus to zoom. Select any node using the menu beside the graph."></canvas><div class="graph-toolbar"><button data-action="reset">Reset</button><button data-action="in" aria-label="Zoom in">+</button><button data-action="out" aria-label="Zoom out">−</button></div><div class="graph-key">'+['profile','category','subcategory','evidence','capability'].map(t=>'<span><i style="background:'+colors[t]+'"></i>'+t+'</span>').join('')+'</div></div><aside class="graph-panel"><label for="graph-node">Explore a node</label><select id="graph-node">'+[...ordered(),...capabilities.map(c=>byId[c.id])].map(n=>'<option value="'+n.id+'">'+(n.parent==='me'?'':n.type==='subcategory'?'— ':n.type==='evidence'?'—— ':'')+n.label+'</option>').join('')+'</select><div id="graph-info"></div><p class="graph-count">Solid arrows: hierarchy · Dashed lines: shared capabilities</p><p class="graph-help">All levels visible · Click to highlight<br>Drag to rotate · Release to stop<br>Touch: drag the network</p></aside></div>';
 const canvas=host.querySelector('canvas'),ctx=canvas.getContext('2d'),select=host.querySelector('select');
 function info(id){
 selected=id;hover=null;
 const n=byId[id];select.value=id;
-const focus=n.type==='capability'?n:children(id).length?n:byId[n.parent];
-const ancestors=[];let p=focus;while(p){ancestors.unshift(p);p=byId[p.parent]}
-const kids=focus.type==='capability'?focus.items.map(id=>byId[id]):children(focus.id);
-visible=[...ancestors,...kids].map(n=>({...n}));
-if(focus.id==='me'){
-visible[0].x=0;visible[0].y=0;
-kids.forEach((n,i)=>{const v=visible.find(v=>v.id===n.id),angle=-Math.PI/2+i*Math.PI*2/kids.length;v.x=Math.cos(angle)*195;v.y=Math.sin(angle)*185;v.z=(i%2?1:-1)*24});
-}else{
-ancestors.forEach((n,i)=>{const v=visible.find(v=>v.id===n.id);v.x=-225+i*65;v.y=(i-ancestors.length+1)*60;v.z=0});
-kids.forEach((n,i)=>{const v=visible.find(v=>v.id===n.id);v.x=95;v.y=(i-(kids.length-1)/2)*95;v.z=(i%2?1:-1)*20});
-}
 const related=capabilities.filter(c=>c.items.includes(id));
-if(n.type==='evidence')related.forEach((c,i)=>visible.push({...byId[c.id],x:255,y:(i-(related.length-1)/2)*100,z:0}));
-const ids=new Set(visible.map(n=>n.id));visiblePairs=pairs.filter(([a,b])=>ids.has(a)&&ids.has(b));
-visibleCross=crossPairs.filter(([a,b])=>ids.has(a)&&ids.has(b));
-targetX=rotX=.08;targetY=rotY=-.10;zoom=1;
+visible=nodes.map(n=>({...n}));
+const placed=Object.fromEntries(visible.map(n=>[n.id,n]));
+const branches=children('me');
+branches.forEach((branch,i)=>{
+const center=-Math.PI/2+i*Math.PI*2/branches.length;
+const position=(n,r,angle)=>{Object.assign(placed[n.id],{x:Math.cos(angle)*r,y:Math.sin(angle)*r,z:0})};
+position(branch,85,center);
+const subs=children(branch.id);
+subs.forEach((sub,j)=>{
+const angle=center+(j-(subs.length-1)/2)*(.95/Math.max(1,subs.length));
+position(sub,170,angle);
+const leaves=children(sub.id);
+leaves.forEach((leaf,k)=>position(leaf,265,angle+(k-(leaves.length-1)/2)*(.85/Math.max(1,subs.length))/Math.max(1,leaves.length)));
+});
+});
+capabilities.forEach((c,i)=>{const angle=-Math.PI/2+(i+.5)*Math.PI*2/capabilities.length;Object.assign(placed[c.id],{x:Math.cos(angle)*330,y:Math.sin(angle)*330,z:0})});
+visiblePairs=pairs;visibleCross=crossPairs;
 const parent=byId[n.parent],ns=children(id);
 host.querySelector('#graph-info').innerHTML='<p class="graph-node-type">'+n.type+'</p><h3>'+n.label+'</h3><p>'+n.text+'</p>'+(n.skills?'<p class="graph-skills">'+n.skills+'</p>':'')+(n.route?'<a href="'+n.route+'">Open evidence ↗</a>':'')+(parent?'<p class="graph-related-title">Parent</p><div class="graph-related"><button data-node="'+parent.id+'">← '+parent.label+'</button></div>':'')+(ns.length?'<p class="graph-related-title">Contains · '+ns.length+'</p><div class="graph-related">'+ns.map(n=>'<button data-node="'+n.id+'">'+n.label+' →</button>').join('')+'</div>':n.type==='capability'?'':'<p class="graph-related-title">Evidence item</p>')+(related.length?'<p class="graph-related-title">Shared capabilities</p><div class="graph-related">'+related.map(c=>'<button data-node="'+c.id+'">'+c.label+' ↔</button>').join('')+'</div>':'')+(n.type==='capability'?'<p class="graph-related-title">Used in</p><div class="graph-related">'+n.items.map(id=>'<button data-node="'+id+'">'+byId[id].label+' ↔</button>').join('')+'</div>':'');
 }
 info('me');
 function resize(){const r=canvas.getBoundingClientRect();w=r.width;h=r.height;const d=Math.min(devicePixelRatio||1,2);canvas.width=w*d;canvas.height=h*d;ctx.setTransform(d,0,0,d,0,0)}
 const obs=new ResizeObserver(resize);obs.observe(canvas);
-function point(n){const cy=Math.cos(rotY),sy=Math.sin(rotY),cx=Math.cos(rotX),sx=Math.sin(rotX);const x=n.x*cy-n.z*sy,z=n.x*sy+n.z*cy,y=n.y*cx-z*sx,zz=n.y*sx+z*cx;const scale=650/(650+zz);const fit=Math.min(w/650,h/590)*zoom;return {...n,px:w/2+x*scale*fit,py:h/2+y*scale*fit,s:scale,depth:zz,r:(n.id==='me'?9:n.type==='evidence'?5:n.type==='category'?8:6)*scale}}
+function point(n){const cy=Math.cos(rotY),sy=Math.sin(rotY),cx=Math.cos(rotX),sx=Math.sin(rotX);const x=n.x*cy-n.z*sy,z=n.x*sy+n.z*cy,y=n.y*cx-z*sx,zz=n.y*sx+z*cx;const scale=650/(650+zz);const fit=Math.min(w/760,h/760)*zoom;return {...n,px:w/2+x*scale*fit,py:h/2+y*scale*fit,s:scale,depth:zz,r:(n.id==='me'?9:n.type==='evidence'?5:n.type==='category'?8:6)*scale}}
 function draw(){if(dead)return;rotX=targetX;rotY=targetY;ctx.clearRect(0,0,w,h);projected=visible.map(point);const map=Object.fromEntries(projected.map(n=>[n.id,n]));const active=hover||selected,near=connected(active);near.add(active);
-for(const[a,b]of visiblePairs){const p=map[a],q=map[b];const lit=active!=='me'&&(a===active||b===active);ctx.beginPath();ctx.moveTo(p.px,p.py);ctx.lineTo(q.px,q.py);ctx.strokeStyle=lit?'rgba(67,112,139,.65)':'rgba(124,140,151,'+(active==='me'?'.2':'.07')+')';ctx.lineWidth=lit?1.5:1;ctx.stroke();const angle=Math.atan2(q.py-p.py,q.px-p.px),tipX=q.px-Math.cos(angle)*(q.r+5),tipY=q.py-Math.sin(angle)*(q.r+5);ctx.beginPath();ctx.moveTo(tipX,tipY);ctx.lineTo(tipX-Math.cos(angle-.45)*7,tipY-Math.sin(angle-.45)*7);ctx.moveTo(tipX,tipY);ctx.lineTo(tipX-Math.cos(angle+.45)*7,tipY-Math.sin(angle+.45)*7);ctx.stroke()}
-for(const [a,b] of visibleCross){const p=map[a],q=map[b];ctx.beginPath();ctx.setLineDash([4,4]);ctx.moveTo(p.px,p.py);ctx.lineTo(q.px,q.py);ctx.strokeStyle='rgba(125,109,153,.7)';ctx.lineWidth=1.2;ctx.stroke();ctx.setLineDash([])}
-for(const n of [...projected].sort((a,b)=>b.depth-a.depth)){const lit=near.has(n.id);ctx.globalAlpha=active==='me'?Math.max(.45,Math.min(1,n.s*.8)):lit?1:.18;ctx.beginPath();ctx.arc(n.px,n.py,n.r+(n.id===active?2:0),0,Math.PI*2);ctx.fillStyle=colors[n.type];ctx.fill();if(n.id===active){ctx.beginPath();ctx.arc(n.px,n.py,n.r+7,0,Math.PI*2);ctx.strokeStyle='#4c748733';ctx.lineWidth=4;ctx.stroke()}ctx.font=(n.id===active?'600 ':'400 ')+(n.id==='me'?12:10)+'px -apple-system,Arial,sans-serif';ctx.fillStyle=n.id===active?'#1d1d1f':'#62626a';const label=n.label;const tw=ctx.measureText(label).width;const lx=n.px>w*.58?n.px-n.r-5-tw:n.px+n.r+5;ctx.fillText(label,Math.max(8,Math.min(w-tw-8,lx)),Math.max(20,Math.min(h-12,n.py+3)))}ctx.globalAlpha=1;frame=requestAnimationFrame(draw)}
+for(const[a,b]of visiblePairs){const p=map[a],q=map[b];const lit=active!=='me'&&(a===active||b===active);ctx.beginPath();ctx.moveTo(p.px,p.py);ctx.lineTo(q.px,q.py);ctx.strokeStyle=lit?'rgba(67,112,139,.65)':'rgba(124,140,151,'+(active==='me'?'.35':'.12')+')';ctx.lineWidth=lit?1.8:1;ctx.stroke();const angle=Math.atan2(q.py-p.py,q.px-p.px),tipX=q.px-Math.cos(angle)*(q.r+5),tipY=q.py-Math.sin(angle)*(q.r+5);ctx.beginPath();ctx.moveTo(tipX,tipY);ctx.lineTo(tipX-Math.cos(angle-.45)*7,tipY-Math.sin(angle-.45)*7);ctx.moveTo(tipX,tipY);ctx.lineTo(tipX-Math.cos(angle+.45)*7,tipY-Math.sin(angle+.45)*7);ctx.stroke()}
+for(const [a,b] of visibleCross){const p=map[a],q=map[b];ctx.beginPath();ctx.setLineDash([4,4]);ctx.moveTo(p.px,p.py);ctx.lineTo(q.px,q.py);ctx.strokeStyle=(a===active||b===active)?'rgba(125,109,153,.85)':'rgba(125,109,153,.14)';ctx.lineWidth=(a===active||b===active)?1.8:.8;ctx.stroke();ctx.setLineDash([])}
+for(const n of [...projected].sort((a,b)=>b.depth-a.depth)){const lit=near.has(n.id);ctx.globalAlpha=active==='me'?Math.max(.45,Math.min(1,n.s*.8)):lit?1:.35;ctx.beginPath();ctx.arc(n.px,n.py,n.r+(n.id===active?2:0),0,Math.PI*2);ctx.fillStyle=colors[n.type];ctx.fill();if(n.id===active){ctx.beginPath();ctx.arc(n.px,n.py,n.r+7,0,Math.PI*2);ctx.strokeStyle='#4c748733';ctx.lineWidth=4;ctx.stroke()}ctx.font=(n.id===active?'600 ':'400 ')+(n.id==='me'?12:n.type==='category'?11:9)+'px -apple-system,Arial,sans-serif';ctx.fillStyle=n.id===active?'#1d1d1f':'#62626a';const label=n.label;const tw=ctx.measureText(label).width;const lx=n.px>w*.58?n.px-n.r-5-tw:n.px+n.r+5;ctx.fillText(label,Math.max(8,Math.min(w-tw-8,lx)),Math.max(20,Math.min(h-12,n.py+3)))}ctx.globalAlpha=1;frame=requestAnimationFrame(draw)}
 function hit(x,y){return [...projected].sort((a,b)=>a.depth-b.depth).find(n=>Math.hypot(x-n.px,y-n.py)<Math.max(n.r+8,13))}
 function move(e){
 const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
@@ -68,6 +70,6 @@ canvas.addEventListener('pointercancel',release);
 canvas.addEventListener('lostpointercapture',release);
 canvas.addEventListener('pointerleave',()=>{hover=null;canvas.title=''});
 canvas.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','-'].includes(e.key)){e.preventDefault();if(e.key==='ArrowLeft')targetY-=.2;if(e.key==='ArrowRight')targetY+=.2;if(e.key==='ArrowUp')targetX-=.2;if(e.key==='ArrowDown')targetX+=.2;if(e.key==='+')zoom=Math.min(1.6,zoom+.1);if(e.key==='-')zoom=Math.max(.6,zoom-.1)}});
-select.addEventListener('change',()=>info(select.value));host.addEventListener('click',e=>{const n=e.target.closest('[data-node]');if(n)info(n.dataset.node);const b=e.target.closest('[data-action]');if(!b)return;if(b.dataset.action==='reset'){targetX=.15;targetY=-.25;zoom=1;info('me')}if(b.dataset.action==='in')zoom=Math.min(1.6,zoom+.15);if(b.dataset.action==='out')zoom=Math.max(.6,zoom-.15)});
+select.addEventListener('change',()=>info(select.value));host.addEventListener('click',e=>{const n=e.target.closest('[data-node]');if(n)info(n.dataset.node);const b=e.target.closest('[data-action]');if(!b)return;if(b.dataset.action==='reset'){targetX=rotX=0;targetY=rotY=0;zoom=1;info('me')}if(b.dataset.action==='in')zoom=Math.min(1.6,zoom+.15);if(b.dataset.action==='out')zoom=Math.max(.6,zoom-.15)});
 resize();draw();return()=>{dead=true;cancelAnimationFrame(frame);obs.disconnect()}
 };
