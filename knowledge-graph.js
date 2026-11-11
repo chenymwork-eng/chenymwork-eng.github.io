@@ -10,6 +10,7 @@ const capabilities=[
 ];
 nodes.push(...capabilities.map(c=>({...c,type:'capability',x:0,y:0,z:0})));
 const crossPairs=capabilities.flatMap(c=>c.items.map(id=>[id,c.id]));
+nodes.find(n=>n.id==='analysis-tech').type='subcategory';
 const byId=Object.fromEntries(nodes.map(n=>[n.id,n]));
 function ordered(id='me'){return [byId[id],...nodes.filter(n=>n.parent===id).flatMap(n=>ordered(n.id))]}
 const children=id=>nodes.filter(n=>n.parent===id);
