@@ -14,7 +14,7 @@ const byId=Object.fromEntries(nodes.map(n=>[n.id,n]));
 function ordered(id='me'){return [byId[id],...nodes.filter(n=>n.parent===id).flatMap(n=>ordered(n.id))]}
 const children=id=>nodes.filter(n=>n.parent===id);
 const pairs=nodes.filter(n=>n.parent).map(n=>[n.parent,n.id]);
-const colors={profile:'#1d1d1f',category:'#4c7487',subcategory:'#7b817c',evidence:'#959aa1',capability:'#7d6d99'};
+const colors={profile:'#f4f1e9',category:'#a8c8e0',subcategory:'#a7b7c9',evidence:'#b8c7d4',capability:'#c4abd9'};
 let visible=[],visiblePairs=[],visibleCross=[];
 let selected='me',hover=null,rotX=0,rotY=0,targetX=0,targetY=0,zoom=1,drag=false,last=null,frame=0,dead=false,projected=[],w=600,h=500;
 const connected=id=>new Set([...visiblePairs,...visibleCross].filter(p=>p.includes(id)).flat());
@@ -26,32 +26,83 @@ const n=byId[id];select.value=id;
 const related=capabilities.filter(c=>c.items.includes(id));
 visible=nodes.map(n=>({...n}));
 const placed=Object.fromEntries(visible.map(n=>[n.id,n]));
-const branches=children('me');
+const branches=children('me'),tones=['#9ebce0','#c2b4de','#89c7c5','#cdbb98','#a7bfa8'];
 branches.forEach((branch,i)=>{
 const center=-Math.PI/2+i*Math.PI*2/branches.length;
-const position=(n,r,angle)=>{Object.assign(placed[n.id],{x:Math.cos(angle)*r,y:Math.sin(angle)*r,z:0})};
-position(branch,85,center);
+const position=(n,r,angle,z=0)=>{Object.assign(placed[n.id],{x:Math.cos(angle)*r,y:Math.sin(angle)*r,z,tone:tones[i]})};
+position(branch,155,center);
 const subs=children(branch.id);
 subs.forEach((sub,j)=>{
 const angle=center+(j-(subs.length-1)/2)*(.95/Math.max(1,subs.length));
-position(sub,170,angle);
+position(sub,235,angle,(j%2?1:-1)*18);
 const leaves=children(sub.id);
-leaves.forEach((leaf,k)=>position(leaf,265,angle+(k-(leaves.length-1)/2)*(.85/Math.max(1,subs.length))/Math.max(1,leaves.length)));
+leaves.forEach((leaf,k)=>position(leaf,320+(k%2)*13,angle+(k-(leaves.length-1)/2)*(.95/Math.max(1,subs.length))/Math.max(1,leaves.length),(k%2?1:-1)*28));
 });
 });
-capabilities.forEach((c,i)=>{const angle=-Math.PI/2+(i+.5)*Math.PI*2/capabilities.length;Object.assign(placed[c.id],{x:Math.cos(angle)*330,y:Math.sin(angle)*330,z:0})});
+capabilities.forEach((c,i)=>{const angle=-Math.PI/2+(i+.5)*Math.PI*2/capabilities.length;Object.assign(placed[c.id],{x:Math.cos(angle)*235,y:Math.sin(angle)*235,z:45,tone:'#c4abd9'})});
 visiblePairs=pairs;visibleCross=crossPairs;
 const parent=byId[n.parent],ns=children(id);
 host.querySelector('#graph-info').innerHTML='<p class="graph-node-type">'+n.type+'</p><h3>'+n.label+'</h3><p>'+n.text+'</p>'+(n.skills?'<p class="graph-skills">'+n.skills+'</p>':'')+(n.route?'<a href="'+n.route+'">Open evidence ↗</a>':'')+(parent?'<p class="graph-related-title">Parent</p><div class="graph-related"><button data-node="'+parent.id+'">← '+parent.label+'</button></div>':'')+(ns.length?'<p class="graph-related-title">Contains · '+ns.length+'</p><div class="graph-related">'+ns.map(n=>'<button data-node="'+n.id+'">'+n.label+' →</button>').join('')+'</div>':n.type==='capability'?'':'<p class="graph-related-title">Evidence item</p>')+(related.length?'<p class="graph-related-title">Shared capabilities</p><div class="graph-related">'+related.map(c=>'<button data-node="'+c.id+'">'+c.label+' ↔</button>').join('')+'</div>':'')+(n.type==='capability'?'<p class="graph-related-title">Used in</p><div class="graph-related">'+n.items.map(id=>'<button data-node="'+id+'">'+byId[id].label+' ↔</button>').join('')+'</div>':'');
 }
 info('me');
-function resize(){const r=canvas.getBoundingClientRect();w=r.width;h=r.height;const d=Math.min(devicePixelRatio||1,2);canvas.width=w*d;canvas.height=h*d;ctx.setTransform(d,0,0,d,0,0)}
+let lastDrawKey='';
+function resize(){lastDrawKey='';const r=canvas.getBoundingClientRect();w=r.width;h=r.height;const d=Math.min(devicePixelRatio||1,2);canvas.width=w*d;canvas.height=h*d;ctx.setTransform(d,0,0,d,0,0)}
 const obs=new ResizeObserver(resize);obs.observe(canvas);
-function point(n){const cy=Math.cos(rotY),sy=Math.sin(rotY),cx=Math.cos(rotX),sx=Math.sin(rotX);const x=n.x*cy-n.z*sy,z=n.x*sy+n.z*cy,y=n.y*cx-z*sx,zz=n.y*sx+z*cx;const scale=650/(650+zz);const fit=Math.min(w/760,h/760)*zoom;return {...n,px:w/2+x*scale*fit,py:h/2+y*scale*fit,s:scale,depth:zz,r:(n.id==='me'?9:n.type==='evidence'?5:n.type==='category'?8:6)*scale}}
-function draw(){if(dead)return;rotX=targetX;rotY=targetY;ctx.clearRect(0,0,w,h);projected=visible.map(point);const map=Object.fromEntries(projected.map(n=>[n.id,n]));const active=hover||selected,near=connected(active);near.add(active);
-for(const[a,b]of visiblePairs){const p=map[a],q=map[b];const lit=active!=='me'&&(a===active||b===active);ctx.beginPath();ctx.moveTo(p.px,p.py);ctx.lineTo(q.px,q.py);ctx.strokeStyle=lit?'rgba(67,112,139,.65)':'rgba(124,140,151,'+(active==='me'?'.35':'.12')+')';ctx.lineWidth=lit?1.8:1;ctx.stroke();const angle=Math.atan2(q.py-p.py,q.px-p.px),tipX=q.px-Math.cos(angle)*(q.r+5),tipY=q.py-Math.sin(angle)*(q.r+5);ctx.beginPath();ctx.moveTo(tipX,tipY);ctx.lineTo(tipX-Math.cos(angle-.45)*7,tipY-Math.sin(angle-.45)*7);ctx.moveTo(tipX,tipY);ctx.lineTo(tipX-Math.cos(angle+.45)*7,tipY-Math.sin(angle+.45)*7);ctx.stroke()}
-for(const [a,b] of visibleCross){const p=map[a],q=map[b];ctx.beginPath();ctx.setLineDash([4,4]);ctx.moveTo(p.px,p.py);ctx.lineTo(q.px,q.py);ctx.strokeStyle=(a===active||b===active)?'rgba(125,109,153,.85)':'rgba(125,109,153,.14)';ctx.lineWidth=(a===active||b===active)?1.8:.8;ctx.stroke();ctx.setLineDash([])}
-for(const n of [...projected].sort((a,b)=>b.depth-a.depth)){const lit=near.has(n.id);ctx.globalAlpha=active==='me'?Math.max(.45,Math.min(1,n.s*.8)):lit?1:.35;ctx.beginPath();ctx.arc(n.px,n.py,n.r+(n.id===active?2:0),0,Math.PI*2);ctx.fillStyle=colors[n.type];ctx.fill();if(n.id===active){ctx.beginPath();ctx.arc(n.px,n.py,n.r+7,0,Math.PI*2);ctx.strokeStyle='#4c748733';ctx.lineWidth=4;ctx.stroke()}ctx.font=(n.id===active?'600 ':'400 ')+(n.id==='me'?12:n.type==='category'?11:9)+'px -apple-system,Arial,sans-serif';ctx.fillStyle=n.id===active?'#1d1d1f':'#62626a';const label=n.label;const tw=ctx.measureText(label).width;const lx=n.px>w/2?n.px+n.r+5:n.px-n.r-5-tw;ctx.fillText(label,Math.max(8,Math.min(w-tw-8,lx)),Math.max(20,Math.min(h-12,n.py+3)))}ctx.globalAlpha=1;frame=requestAnimationFrame(draw)}
+function point(n){const cy=Math.cos(rotY),sy=Math.sin(rotY),cx=Math.cos(rotX),sx=Math.sin(rotX);const x=n.x*cy-n.z*sy,z=n.x*sy+n.z*cy,y=n.y*cx-z*sx,zz=n.y*sx+z*cx;const scale=650/(650+zz);const fit=Math.min(w/920,h/880)*zoom;return {...n,px:w/2+x*scale*fit,py:h/2+y*scale*fit,s:scale,depth:zz,r:(n.id==='me'?6:n.type==='evidence'?2.6:n.type==='category'?4.5:3.2)*scale}}
+const stars=Array.from({length:220},(_,i)=>({x:((Math.sin(i*127.1+3)*43758.5453)%1+1)%1,y:((Math.sin(i*311.7+7)*17431.137)%1+1)%1,r:i%17===0?1:.5,alpha:.12+(i%5)*.045}));
+function draw(){
+if(dead)return;const drawKey=[targetX,targetY,zoom,w,h,selected,hover].join('|');if(drawKey===lastDrawKey){frame=requestAnimationFrame(draw);return}lastDrawKey=drawKey;rotX=targetX;rotY=targetY;ctx.clearRect(0,0,w,h);
+for(const star of stars){ctx.globalAlpha=star.alpha;ctx.fillStyle='#c7d8ef';ctx.beginPath();ctx.arc(star.x*w,star.y*h,star.r,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;
+projected=visible.map(point);
+const map=Object.fromEntries(projected.map(n=>[n.id,n])),active=hover||selected,near=connected(active);near.add(active);
+for(const n of projected.filter(n=>n.type==='category'||n.id==='me')){
+const glow=ctx.createRadialGradient(n.px,n.py,0,n.px,n.py,n.id==='me'?100:80);
+glow.addColorStop(0,(n.tone||'#a8c8e0')+'15');glow.addColorStop(1,'#0a122000');
+ctx.fillStyle=glow;ctx.fillRect(n.px-100,n.py-100,200,200);
+}
+for(const [a,b] of visiblePairs){
+const p=map[a],q=map[b],lit=active!=='me'&&(a===active||b===active);
+ctx.beginPath();ctx.moveTo(p.px,p.py);
+ctx.quadraticCurveTo((p.px+q.px)/2+(q.py-p.py)*.1,(p.py+q.py)/2-(q.px-p.px)*.1,q.px,q.py);
+ctx.strokeStyle=lit?'#d4e6f0b0':(q.tone||'#aec9e0')+(active==='me'?'3d':'1a');ctx.lineWidth=lit?1.25:.6;ctx.stroke();
+}
+for(const [a,b] of visibleCross){
+const p=map[a],q=map[b],lit=a===active||b===active;
+ctx.beginPath();ctx.setLineDash([2,5]);ctx.moveTo(p.px,p.py);ctx.lineTo(q.px,q.py);ctx.strokeStyle=lit?'#cdb5e7b0':'#b9a4d51a';ctx.lineWidth=lit?1.1:.5;ctx.stroke();ctx.setLineDash([]);
+}
+for(const n of [...projected].sort((a,b)=>b.depth-a.depth)){
+const lit=near.has(n.id);ctx.globalAlpha=active==='me'||lit?1:.4;
+ctx.shadowColor=n.tone||colors[n.type];ctx.shadowBlur=n.id===active?15:7;
+ctx.beginPath();ctx.arc(n.px,n.py,n.r+(n.id===active?1.5:0),0,Math.PI*2);ctx.fillStyle=n.tone||colors[n.type];ctx.fill();ctx.shadowBlur=0;
+if(n.id===active){ctx.beginPath();ctx.arc(n.px,n.py,n.r+6,0,Math.PI*2);ctx.strokeStyle='#d8e7f145';ctx.lineWidth=1;ctx.stroke()}
+}
+ctx.globalAlpha=1;
+drawLabels(active,near);
+frame=requestAnimationFrame(draw);
+}
+function drawLabels(active,near){
+const boxes=[],priority=n=>n.id===active?0:n.id==='me'?1:n.type==='category'?2:near.has(n.id)?3:n.type==='capability'?4:n.type==='subcategory'?5:6;
+const collides=(a,b)=>a.x<b.x+b.w+5&&a.x+a.w+5>b.x&&a.y<b.y+b.h+4&&a.y+a.h+4>b.y;
+for(const n of [...projected].sort((a,b)=>priority(a)-priority(b)||a.id.localeCompare(b.id))){
+const size=n.id==='me'?13:n.type==='category'?12:10;
+ctx.font=(n.id===active||n.type==='category'?'500 ':'400 ')+size+'px -apple-system,Arial,sans-serif';
+const words=n.label.split(' '),lines=[];let line='';
+for(const word of words){const next=line?line+' '+word:word;if(ctx.measureText(next).width>116&&line){lines.push(line);line=word}else line=next}if(line)lines.push(line);
+const tw=Math.max(...lines.map(t=>ctx.measureText(t).width)),th=lines.length*14;
+const right=n.px>=w/2,candidates=[];
+for(const distance of [12,30,50,72,96,124])for(const dy of [0,-18,18,-38,38,-64,64]){
+candidates.push({x:right?n.px+distance:n.px-distance-tw,y:n.py-th/2+dy,w:tw,h:th});
+candidates.push({x:right?n.px-distance-tw:n.px+distance,y:n.py-th/2+dy,w:tw,h:th});
+}
+let box=candidates.find(b=>b.x>14&&b.y>55&&b.x+b.w<w-14&&b.y+b.h<h-14&&!boxes.some(o=>collides(b,o))&&!projected.some(p=>collides(b,{x:p.px-p.r-2,y:p.py-p.r-2,w:p.r*2+4,h:p.r*2+4})));
+if(!box)continue;
+boxes.push(box);
+const ax=Math.max(box.x,Math.min(box.x+box.w,n.px)),ay=Math.max(box.y,Math.min(box.y+box.h,n.py));
+if(Math.hypot(ax-n.px,ay-n.py)>18){ctx.beginPath();ctx.moveTo(n.px,n.py);ctx.lineTo(ax,ay);ctx.strokeStyle='#a7bbcf35';ctx.lineWidth=.5;ctx.stroke()}
+ctx.fillStyle=n.id===active?'#fff':n.type==='category'?'#e0e7ee':active==='me'||near.has(n.id)?'#b0bdcd':'#718197';
+lines.forEach((t,i)=>ctx.fillText(t,box.x,box.y+11+i*14));
+}
+}
 function hit(x,y){return [...projected].sort((a,b)=>a.depth-b.depth).find(n=>Math.hypot(x-n.px,y-n.py)<Math.max(n.r+8,13))}
 function move(e){
 const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
