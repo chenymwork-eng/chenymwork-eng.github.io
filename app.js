@@ -4,6 +4,8 @@ const timeline=[{"track":"tech","date":"Nov 2024 – Sep 2025","title":"AI Strat
 
 const areas={ai:{title:"Evaluate AI",desc:"Model behaviour, reliability and decisions under uncertainty.",category:"ai"},data:{title:"Analyse data",desc:"Find patterns, test assumptions and make reporting useful.",category:"data"},product:{title:"Build & deliver",desc:"Turn user needs into systems, prototypes and technical support.",category:"product"},experience:{title:"Experience",desc:"Professional roles in industry analytics, technical advisory and commercial research. Each case explains the decision, my responsibilities and the outputs."},publication:{title:"Research",desc:"Published research, submitted manuscripts and dissertation work, with their status and my contribution made explicit."}};
 const root=document.querySelector('#view');
+let currentRoute={type:'',id:null};
+const projectParents={};
 const L=(url,text,cls='')=>'<a href="'+url+'" class="'+cls+'">'+text+'</a>';
 const M=text=>'<ul class="meta-lines">'+text.split(' · ').map(t=>'<li>'+t+'</li>').join('')+'</ul>';
 const H=(title,desc='')=>'<div class="view-heading"><h2>'+title+'</h2>'+(desc.includes(' · ')?M(desc):'<p>'+desc+'</p>')+'</div>';
@@ -26,7 +28,7 @@ if(id==='ai')rows=row('#/paper/icmi','Published · ACM ICMI 2026 · First author
 return C(null,a.title)+H(a.title,a.desc)+'<div class="list-items">'+rows+'</div>'}
 
 function project(id){
-const p=projects.find(p=>p.id===id);if(!p)return home();const a=Object.keys(areas).find(k=>areas[k].category===p.category);
+const p=projects.find(p=>p.id===id);if(!p)return home();const defaultArea=Object.keys(areas).find(k=>areas[k].category===p.category);const a=projectParents[id]||defaultArea;
 let extra='';
 if(id==='amytis')extra=sections([['Research to design','<strong>Context recovery:</strong> Resume entry point and recent activity.<br><strong>Competing information:</strong> Focus Mode and selected tasks.<br><strong>Fragmented materials:</strong> linked project resources and visible activity trails.'],['Next validation','Test whether people can resume interrupted work with less time and fewer errors. Productivity and cognitive-load gains remain hypotheses.']]);
 if(id==='vlm')extra='<section class="evaluation-evidence"><h3>How I tested the claim</h3><p>Evaluation scope from the completed dissertation.</p><table><caption>Comparisons used to interrogate model performance</caption><thead><tr><th scope="col">Comparison</th><th scope="col">Evidence examined</th><th scope="col">Decision question</th></tr></thead><tbody><tr><th scope="row">Prompt framing</th><td>Predictions and class-specific errors</td><td>Did wording improve performance or change what gets flagged?</td></tr><tr><th scope="row">Model and adaptation</th><td>Qwen, LLaVA, supervised CLIP and Qwen LoRA adapters</td><td>Does the conclusion hold across different modelling choices?</td></tr><tr><th scope="row">Annotation standards</th><td>Indian, Chinese and consensus labels</td><td>How does the choice of reference labels affect the evaluation?</td></tr></tbody></table></section>'+sections([['Practical interpretation','A prediction shift is not sufficient evidence of an accuracy gain. Compare errors and annotation assumptions before treating a prompt or adapter as an improvement for a particular use case.']]);
@@ -52,6 +54,8 @@ const script=document.createElement('script');script.src=document.querySelector(
 function render(){
 const version=++renderId;if(graphObserver){graphObserver.disconnect();graphObserver=null}if(disposeGraph){disposeGraph();disposeGraph=null}
 let r=location.hash.slice(1);if(r.startsWith('/'))r=r.slice(1);const [type,id]=r.split('/');
+if(type==='project'&&currentRoute.type==='area'&&areas[currentRoute.id])projectParents[id]=currentRoute.id;
+currentRoute={type,id};
 const network=document.querySelector('#overview-network');network.hidden=!!type&&!(type==='area'&&id==='graph');
 document.body.dataset.view=network.hidden?'detail':'overview';
 root.innerHTML=type==='area'?area(id):type==='project'?project(id):type==='experience'&&id?experience(id):type==='paper'?paper():['experience','journey'].includes(type)?area('experience'):type==='research'?area('publication'):home();
