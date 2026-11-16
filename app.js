@@ -61,6 +61,7 @@ document.body.dataset.view=network.hidden?'detail':'overview';
 root.innerHTML=type==='area'?area(id):type==='project'?project(id):type==='experience'&&id?experience(id):type==='paper'?paper():['experience','journey'].includes(type)?area('experience'):type==='research'?area('publication'):home();
 document.querySelectorAll('header nav a').forEach(link=>{const href=link.getAttribute('href');const active=href==='#/'?!type:href==='#/area/experience'?type==='experience'||type==='area'&&id==='experience':type==='paper'||type==='area'&&['publication','ai'].includes(id)||type==='project'&&['vlm','manuscript'].includes(id);if(active)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current')});
 document.title=(root.querySelector('h2')?.textContent||'Portfolio')+' — Yumeng Chen';window.scrollTo({top:0,behavior:'instant'});root.focus({preventScroll:true});
+window.portfolioI18n?.apply();
 if(!network.hidden){
 const map=document.querySelector('#knowledge-graph');
 map.innerHTML='<p class="map-placeholder">Explore connections between projects, methods and experience.</p>';
@@ -73,5 +74,6 @@ const link=e.target.closest('[data-selected-work]');if(!link)return;e.preventDef
 if(location.hash!=='#/'){location.hash='#/';requestAnimationFrame(()=>document.querySelector('#selected-work')?.scrollIntoView({block:'start',behavior:'smooth'}))}
 else document.querySelector('#selected-work')?.scrollIntoView({block:'start',behavior:'smooth'});
 });
+addEventListener('portfolio-language-change',()=>{const network=document.querySelector('#overview-network');if(disposeGraph&&!network.hidden&&window.mountKnowledgeGraph){disposeGraph();disposeGraph=window.mountKnowledgeGraph(document.querySelector('#knowledge-graph'))}window.portfolioI18n?.apply()});
 addEventListener('hashchange',render);render();
 
