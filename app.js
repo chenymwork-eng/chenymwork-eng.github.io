@@ -38,6 +38,7 @@ function render(){
 const version=++renderId;if(graphObserver){graphObserver.disconnect();graphObserver=null}if(disposeGraph){disposeGraph();disposeGraph=null}
 let r=location.hash.slice(1);if(r.startsWith('/'))r=r.slice(1);const [type,id]=r.split('/');
 const network=document.querySelector('#overview-network');network.hidden=!!type&&!(type==='area'&&id==='graph');
+document.body.dataset.view=network.hidden?'detail':'overview';
 root.innerHTML=type==='area'?area(id):type==='project'?project(id):type==='experience'&&id?experience(id):type==='paper'?paper():['experience','journey'].includes(type)?area('experience'):type==='research'?area('publication'):home();
 document.querySelectorAll('header nav a').forEach(link=>{const href=link.getAttribute('href');const active=href==='#/'?!type:href==='#/area/experience'?type==='experience'||type==='area'&&id==='experience':type==='paper'||type==='area'&&id==='publication';if(active)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current')});
 document.title=(root.querySelector('h2')?.textContent||'Portfolio')+' — Yumeng Chen';window.scrollTo({top:0,behavior:'instant'});root.focus({preventScroll:true});
